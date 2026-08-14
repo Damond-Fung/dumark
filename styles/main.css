@@ -1,0 +1,144 @@
+/* 源图 Dumark — 暗夜修复工坊 */
+
+:root {
+  --bg: #131316;
+  --surface: #1b1b21;
+  --surface2: #222229;
+  --border: #2e2e38;
+  --text: #f0eee9;
+  --muted: #8b8b98;
+  --accent: #f2b544;          /* 琥珀金 · 主操作 */
+  --accent-deep: #d99a22;
+  --mask: #ff4f5e;            /* 朱红 · 涂抹层 */
+  --ok: #3ddc97;
+  --serif: 'Noto Serif SC', serif;
+  --sans: 'Noto Sans SC', sans-serif;
+  --mono: 'Space Mono', ui-monospace, monospace;
+  --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.7;
+  background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(242,181,68,.06), transparent);
+}
+.hidden { display: none !important; }
+
+/* ── 顶栏 ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 40px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: rgba(19,19,22,.85); backdrop-filter: blur(10px); z-index: 50;
+}
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+.brand-mark {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: block; object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(242,181,68,.25), 0 2px 8px rgba(242,181,68,.15);
+}
+.brand-name { display: flex; align-items: baseline; gap: 7px; font-family: var(--sans); font-weight: 700; font-size: 20px; letter-spacing: .02em; }
+.brand-name em { font-style: normal; font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: .08em; font-weight: 400; }
+.brand-tag { font-family: var(--mono); font-size: 9px; color: var(--ok); border: 1px solid rgba(61,220,151,.4); border-radius: 4px; padding: 2px 6px; letter-spacing: .15em; }
+.topnav a { color: var(--muted); text-decoration: none; margin-left: 28px; font-size: 15px; font-weight: 500; transition: color .15s; }
+.topnav a:hover { color: var(--accent); }
+
+/* ── Hero ── */
+.hero { max-width: 880px; margin: 0 auto; padding: 84px 24px 64px; text-align: center; }
+.hero-kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .3em; color: var(--accent); margin-bottom: 22px; }
+.hero-title { font-family: var(--serif); font-weight: 900; font-size: clamp(44px, 7vw, 76px); line-height: 1.15; }
+.hero-title span { color: var(--accent); }
+.hero-sub { margin: 26px auto 40px; color: var(--muted); font-size: 17px; }
+
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: 16px; background: var(--surface);
+  padding: 52px 24px; cursor: pointer; transition: border-color .2s, background .2s, transform .15s;
+}
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--surface2); transform: translateY(-2px); }
+.upload-icon { width: 44px; height: 44px; color: var(--accent); margin-bottom: 14px; }
+.upload-main { font-size: 19px; font-weight: 700; }
+.upload-hint { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 8px; }
+.legal-note { margin-top: 16px; font-size: 13px; color: var(--muted); }
+
+/* ── 编辑器 ── */
+.editor { max-width: 1240px; margin: 0 auto; padding: 40px 24px 72px; }
+.editor-shell {
+  display: grid; grid-template-columns: 1fr 280px; gap: 0;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+}
+.canvas-stage {
+  position: relative; min-height: 520px; display: flex; align-items: center; justify-content: center;
+  background:
+    linear-gradient(45deg, #1a1a1f 25%, transparent 25%) -12px 0,
+    linear-gradient(-45deg, #1a1a1f 25%, transparent 25%) -12px 0,
+    linear-gradient(45deg, transparent 75%, #1a1a1f 75%),
+    linear-gradient(-45deg, transparent 75%, #1a1a1f 75%);
+  background-size: 24px 24px; background-color: #151518;
+  overflow: hidden; touch-action: none;
+}
+.canvas-stage canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+#maskCanvas { opacity: .55; }
+#cursorCanvas { pointer-events: none; z-index: 5; }
+.stage-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: var(--mono); font-size: 13px; z-index: 8; background: rgba(21,21,24,.7); }
+
+.panel { border-left: 1px solid var(--border); padding: 22px; display: flex; flex-direction: column; gap: 22px; background: var(--surface); }
+.panel-label { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+.seg { display: flex; gap: 6px; margin-bottom: 12px; }
+.seg-btn {
+  flex: 1; padding: 8px 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2);
+  color: var(--muted); font-family: var(--sans); font-weight: 700; font-size: 14px; cursor: pointer; transition: all .15s;
+}
+.seg-btn.active { background: var(--accent); border-color: var(--accent); color: #131316; }
+.slider-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+.slider-row b { font-family: var(--mono); color: var(--text); min-width: 28px; text-align: right; }
+input[type=range] { flex: 1; appearance: none; height: 4px; background: var(--border); border-radius: 2px; outline: none; }
+input[type=range]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .ghost { flex: 1; }
+button.primary {
+  width: 100%; padding: 13px 0; border: none; border-radius: 8px; background: var(--accent); color: #131316;
+  font-family: var(--sans); font-weight: 700; font-size: 16px; cursor: pointer; transition: background .15s, transform .1s; margin-bottom: 10px;
+}
+button.primary:hover { background: var(--accent-deep); }
+button.primary:active { transform: scale(.98); }
+button.primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+button.primary.warm { background: var(--ok); }
+button.primary.warm:hover { background: #2fc484; }
+button.ghost {
+  width: 100%; padding: 9px 0; border: 1px solid var(--border); border-radius: 8px; background: transparent;
+  color: var(--text); font-family: var(--sans); font-weight: 500; font-size: 14px; cursor: pointer; transition: border-color .15s; margin-bottom: 8px;
+}
+button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+.status-block { margin-top: auto; }
+.auto-hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+.progress { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 3px; transition: width .25s; }
+.status-text { font-family: var(--mono); font-size: 11px; color: var(--muted); word-break: break-all; }
+.status-text.ok { color: var(--ok); }
+.status-text.err { color: var(--mask); }
+
+/* ── 说明 / FAQ ── */
+.how, .faq { max-width: 880px; margin: 0 auto; padding: 56px 24px; }
+.how h2, .faq h2 { font-family: var(--serif); font-weight: 900; font-size: 34px; margin-bottom: 28px; }
+.how h2::before, .faq h2::before { content: '—'; color: var(--accent); margin-right: 12px; }
+.steps { list-style: none; counter-reset: s; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.steps li { counter-increment: s; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 20px; }
+.steps li::before { content: '0' counter(s); font-family: var(--mono); color: var(--accent); font-size: 13px; }
+.steps li b { display: block; font-size: 18px; margin: 8px 0 6px; }
+.steps li span { color: var(--muted); font-size: 14px; }
+.faq details { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 12px; padding: 16px 20px; }
+.faq summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+.faq details p { margin-top: 10px; color: var(--muted); font-size: 14px; }
+
+.footer { border-top: 1px solid var(--border); padding: 28px 40px; text-align: center; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
+@media (max-width: 900px) {
+  .editor-shell { grid-template-columns: 1fr; }
+  .panel { border-left: none; border-top: 1px solid var(--border); }
+  .steps { grid-template-columns: 1fr; }
+  .topnav { display: none; }
+  .topbar { padding: 14px 20px; }
+}

@@ -1,0 +1,16 @@
+# 临时文件
+.tmp_*
+font_check.png.jpg
+
+# 项目规划文件（不上传到仓库）
+task_plan.md
+findings.md
+progress.md
+developer_preferences.md
+
+# ONNX 模型文件（太大，GitHub 单文件限制 100MB）
+models/*.onnx
+
+# 系统文件
+Thumbs.db
+.DS_Store
