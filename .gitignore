@@ -2,6 +2,11 @@
 .tmp_*
 font_check.png.jpg
 
+# 调试截图 / 分享打包产物（本地生成，不入库）
+.screenshots/
+.trae-html-share-packages/
+*.zip
+
 # 项目规划文件（不上传到仓库）
 task_plan.md
 findings.md
