@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>源图 Dumark · 手机版</title>
+<meta name="description" content="源图 Dumark 手机版：本地 AI 去水印，涂抹或自动检测水印，LaMa 在设备内修复，图片不上传。">
+<meta name="theme-color" content="#131316">
+<link rel="icon" type="image/jpeg" href="assets/logo.jpg">
+<link rel="preconnect" href="https://fonts.loli.net">
+<link href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/mobile.css">
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="app">
+
+    <!-- ── 首页 ── -->
+    <section class="screen is-active" id="screenHome">
+      <header class="mhead">
+        <div class="mhead-brand">
+          <img src="assets/logo.jpg" alt="源图 Dumark">
+          <span>源图<em>Dumark</em></span>
+        </div>
+        <span class="pill" id="enginePill">引擎加载中</span>
+      </header>
+
+      <div class="home-scroll">
+        <p class="kicker">AI INPAINTING · 100% 本地</p>
+        <h1 class="mtitle">抹去水印<br><span>不留痕迹</span></h1>
+        <p class="msub">用手涂抹或自动检测水印区域，LaMa 在你的设备里重建背景。<br>不上传、不排队、不限次数。</p>
+
+        <div class="pick-card">
+          <button class="pick-btn" id="btnAlbum">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 4 3 3-2 4 3"/></svg>
+            <b>从相册选图</b>
+            <small>PNG / JPG / WEBP</small>
+          </button>
+          <button class="pick-btn" id="btnCamera">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13" r="3.2"/></svg>
+            <b>拍照识别</b>
+            <small>直接拍摄带水印图片</small>
+          </button>
+          <p class="pick-hint">单张 ≤ 10MB，处理在本机完成</p>
+        </div>
+
+        <div class="recent hidden" id="recentCard">
+          <p class="sec-label">本次处理</p>
+          <div class="recent-row">
+            <img id="recentThumb" alt="处理结果缩略图">
+            <div class="recent-meta"><b>已去除水印</b><span id="recentMeta"></span></div>
+            <button class="mini" id="btnRecentOpen">查看</button>
+          </div>
+        </div>
+
+        <ol class="msteps">
+          <li><b>选图</b><span>相册或拍照，图片留在手机上</span></li>
+          <li><b>标记</b><span>一键自动检测，或手指涂抹修正</span></li>
+          <li><b>修复</b><span>本地 LaMa 重建背景，拖动对比后保存</span></li>
+        </ol>
+
+        <p class="legal-note">请仅处理你拥有版权或已获授权的图片。</p>
+      </div>
+
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" hidden>
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+    </section>
+
+    <!-- ── 编辑器 ── -->
+    <section class="screen" id="screenEditor">
+      <header class="ebar">
+        <button class="icon-btn" id="btnBack" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <p class="ebar-title" id="editorTitle">涂抹水印</p>
+        <div class="ebar-actions">
+          <button class="icon-btn" id="btnUndo" aria-label="撤销">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7L4 12l5 5"/><path d="M4 12h9a6 6 0 010 12h-1"/></svg>
+          </button>
+          <button class="icon-btn" id="btnClear" aria-label="清空">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0l1 13h8l1-13"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="stage" id="stage">
+        <canvas id="imgCanvas"></canvas>
+        <canvas id="maskCanvas"></canvas>
+        <canvas id="cursorCanvas"></canvas>
+        <div class="stage-empty" id="stageEmpty">载入图片中…</div>
+      </div>
+
+      <!-- 修复结果：拖动对比 -->
+      <div class="result hidden" id="resultOverlay">
+        <div class="result-head">
+          <p class="kicker">RESULT · 本地完成</p>
+          <h2>水印已修复</h2>
+          <p class="result-sub" id="resultSub">左右拖动滑块，对比修复前后</p>
+        </div>
+        <div class="cmp" id="cmp">
+          <canvas class="cmp-layer" id="cmpOrig"></canvas>
+          <div class="cmp-after" id="cmpAfter"><canvas class="cmp-layer" id="cmpAfterCanvas"></canvas></div>
+          <div class="cmp-handle" id="cmpHandle"><span></span></div>
+          <span class="cmp-tag left">修复前</span>
+          <span class="cmp-tag right">修复后</span>
+        </div>
+        <div class="result-actions">
+          <button class="btn-primary" id="btnDownload">保存到相册</button>
+          <button class="btn-ghost" id="btnReEdit">继续精修</button>
+        </div>
+      </div>
+
+      <div class="toolbar" id="toolbar">
+        <div class="tool-row">
+          <button class="tool active" id="btnBrush">画笔</button>
+          <button class="tool" id="btnEraser">橡皮</button>
+          <div class="size-row">
+            <input type="range" id="brushSize" min="20" max="160" value="80" aria-label="笔刷大小">
+            <b id="sizeVal">80</b>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn-ghost" id="btnAutoDetect">✦ 自动检测</button>
+          <button class="btn-primary" id="btnRun" disabled>开始修复</button>
+        </div>
+        <div class="sens-row">
+          <span>灵敏度</span>
+          <div class="chips" id="sensSeg">
+            <button data-sens="low">低</button>
+            <button data-sens="mid" class="active">中</button>
+            <button data-sens="high">高</button>
+          </div>
+        </div>
+        <p class="hint" id="hint">用手指涂抹水印，或点「自动检测」</p>
+      </div>
+
+      <div class="loading hidden" id="loading">
+        <div class="loading-box">
+          <div class="bar"><i id="progressFill"></i></div>
+          <p id="loadingText">正在修复…</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+<script type="module" src="scripts/mobile-app.js"></script>
+</body>
+</html>
