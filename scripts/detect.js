@@ -102,10 +102,13 @@ export const WATERMARK_DETECT = {
 
   /* 像素级精修：在检测框内，用盒式模糊估计局部背景，
    * 只把「与局部背景颜色差异大」的像素标为水印（Uint8Array 0/1，原图尺寸）。
-   * 矩形内部均匀区域（如实心图形）不会被误标。 */
+   * 阈值按框内差异直方图 Otsu 自适应：低对比半透明水印能召回，
+   * 近乎均匀的误检框（阈值低于 skipT）自动整框跳过，矩形内均匀区域不误标。 */
   refineMask(canvas, rects, opts) {
     opts = opts || {};
-    const diffT = opts.diffThreshold || 24;  // 与背景的颜色差阈值
+    const diffCap = opts.diffThreshold || 24;  // 自适应阈值上限
+    const minT = opts.minThreshold != null ? opts.minThreshold : 8; // 阈值下限
+    const skipT = opts.skipThreshold != null ? opts.skipThreshold : 6; // 低于此判定均匀框
     const dilateR = opts.dilate != null ? opts.dilate : 3; // 膨胀半径，保证覆盖描边
     const blurR = opts.blurRadius || 7;
     const W = canvas.width, H = canvas.height;
@@ -132,39 +135,85 @@ export const WATERMARK_DETECT = {
     };
 
     const mask = new Uint8Array(W * H);
+    const hist = new Uint32Array(64);
     for (const r of rects) {
+      const x0 = Math.max(0, r.x), y0 = Math.max(0, r.y);
       const x1 = Math.min(W, r.x + r.w), y1 = Math.min(H, r.y + r.h);
-      for (let y = Math.max(0, r.y); y < y1; y++) {
-        for (let x = Math.max(0, r.x); x < x1; x++) {
+      if (x1 <= x0 || y1 <= y0) continue;
+
+      // 框内 |像素-局部背景| 直方图（4 灰度级/桶）
+      hist.fill(0);
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
           const i = y * W + x, p = i * 4;
           const lum = d[p] * 0.299 + d[p + 1] * 0.587 + d[p + 2] * 0.114;
-          if (Math.abs(lum - boxMean(x, y)) > diffT) mask[i] = 1;
+          const v = Math.abs(lum - boxMean(x, y)) | 0;
+          hist[Math.min(63, v >> 2)]++;
+        }
+      }
+      // Otsu 求水印/背景双峰分界
+      let t = this._otsu(hist) * 4;
+      if (t < skipT) continue; // 框内近乎均匀 → 误检框，跳过
+      t = Math.max(minT, Math.min(diffCap, t));
+
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const i = y * W + x, p = i * 4;
+          const lum = d[p] * 0.299 + d[p + 1] * 0.587 + d[p + 2] * 0.114;
+          if (Math.abs(lum - boxMean(x, y)) > t) mask[i] = 1;
         }
       }
     }
 
     // 膨胀：覆盖水印描边边缘
-    if (dilateR > 0) {
-      const src = mask.slice();
-      for (let y = 0; y < H; y++) {
-        for (let x = 0; x < W; x++) {
-          const i = y * W + x;
-          if (src[i]) continue;
-          let hit = false;
-          for (let dy = -dilateR; dy <= dilateR && !hit; dy++) {
-            const yy = y + dy;
-            if (yy < 0 || yy >= H) continue;
-            for (let dx = -dilateR; dx <= dilateR; dx++) {
-              const xx = x + dx;
-              if (xx < 0 || xx >= W) continue;
-              if (src[yy * W + xx]) { hit = true; break; }
-            }
-          }
-          if (hit) mask[i] = 1;
-        }
+    if (dilateR > 0) this._dilateMask(mask, W, H, dilateR);
+    return mask;
+  },
+
+  /* 64 桶直方图 Otsu 阈值，返回桶下标 */
+  _otsu(hist) {
+    let total = 0, sum = 0;
+    for (let i = 0; i < 64; i++) { total += hist[i]; sum += hist[i] * i; }
+    if (!total) return 0;
+    let wB = 0, sumB = 0, best = 0, bestT = 0;
+    for (let i = 0; i < 63; i++) {
+      wB += hist[i]; sumB += hist[i] * i;
+      if (!wB || wB === total) continue;
+      const mB = sumB / wB, mF = (sum - sumB) / (total - wB);
+      const between = wB * (total - wB) * (mB - mF) * (mB - mF);
+      if (between > best) { best = between; bestT = i; }
+    }
+    return bestT;
+  },
+
+  /* 矩形结构元膨胀（水平/垂直两趟滑窗，O(n)；run 初始为 r+1 表示「尚无前景」，防止边缘误标） */
+  _dilateMask(buf, W, H, r) {
+    const tmp = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) {
+      const row = y * W;
+      let run = r + 1;
+      for (let x = 0; x < W; x++) {
+        run = buf[row + x] ? 0 : run + 1;
+        tmp[row + x] = run <= r ? 1 : 0;
+      }
+      run = r + 1;
+      for (let x = W - 1; x >= 0; x--) {
+        run = buf[row + x] ? 0 : run + 1;
+        if (run <= r) tmp[row + x] = 1;
       }
     }
-    return mask;
+    for (let x = 0; x < W; x++) {
+      let run = r + 1;
+      for (let y = 0; y < H; y++) {
+        run = tmp[y * W + x] ? 0 : run + 1;
+        if (run <= r) buf[y * W + x] = 1;
+      }
+      run = r + 1;
+      for (let y = H - 1; y >= 0; y--) {
+        run = tmp[y * W + x] ? 0 : run + 1;
+        if (run <= r) buf[y * W + x] = 1;
+      }
+    }
   },
 
   /* 形态学闭运算（简化版：膨胀+腐蚀） */

@@ -5,6 +5,8 @@ import { MaskEditor } from './editor.js';
 import { InpaintClient } from './inpaint.js';
 import { DetectClient } from './detect-client.js';
 import { WATERMARK_DETECT } from './detect.js';
+import { extendTiled } from './detect-template.js';
+import { detectIcons } from './detect-icons.js';
 import { MODELS } from './models.config.js';
 
 const $ = (id) => document.getElementById(id);
@@ -18,6 +20,7 @@ const els = {
   btnRun: $('btnRun'), btnReEdit: $('btnReEdit'), btnCompare: $('btnCompare'),
   btnDownload: $('btnDownload'), btnNew: $('btnNew'), fmtSeg: $('fmtSeg'),
   progressFill: $('progressFill'), statusText: $('statusText'),
+  sensSeg: $('sensSeg'),
 };
 
 const MAX_FILE_MB = 10;
@@ -27,7 +30,7 @@ let modelReady = false;
 let busy = false;
 let exportFmt = 'png';
 let originalCanvas = null; // 修复前原图（用于按住对比）
-let detectReady = false;   // YOLO 检测模型就绪
+let detectReady = false;   // DBNet 文本检测模型就绪
 let detectRects = null;    // 最近一次 AI 检测框（用于分区域高质量修复）
 
 /* ── 状态栏 ── */
@@ -55,7 +58,7 @@ const client = new InpaintClient({
 });
 client.init(MODELS.inpaint);
 
-/* ── YOLO 水印检测模型（静默预热，失败时自动降级启发式） ── */
+/* ── DBNet 水印检测模型（静默预热，失败时自动降级启发式） ── */
 const detector = new DetectClient({
   onReady: () => { detectReady = true; },
   onError: () => { detectReady = false; }, // 静默降级，不打扰主流程
@@ -126,7 +129,21 @@ els.btnClear.addEventListener('click', () => { detectRects = null; editor && edi
 /* 手动涂抹后，AI 检测框不再代表当前 mask，分区域修复失效 */
 els.stage.addEventListener('pointerdown', () => { detectRects = null; });
 
-/* ── 自动检测水印（YOLO 优先，未就绪时降级启发式） ── */
+/* ── 检测灵敏度（低/中/高，localStorage 记忆） ── */
+let detectSens = localStorage.getItem('dumark.detect.sens') || 'mid';
+(function initSensUI() {
+  if (!/^(low|mid|high)$/.test(detectSens)) detectSens = 'mid';
+  els.sensSeg.querySelectorAll('.seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.sens === detectSens));
+})();
+els.sensSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-sens]');
+  if (!btn) return;
+  detectSens = btn.dataset.sens;
+  localStorage.setItem('dumark.detect.sens', detectSens);
+  els.sensSeg.querySelectorAll('.seg-btn').forEach((b) => b.classList.toggle('active', b === btn));
+});
+
+/* ── 自动检测水印（AI 文本检测优先，未就绪时降级启发式） ── */
 els.btnAutoDetect.addEventListener('click', async () => {
   if (!editor || busy) return;
   busy = true; refreshButtons();
@@ -135,7 +152,7 @@ els.btnAutoDetect.addEventListener('click', async () => {
     let rects = null;
     if (detectReady) {
       setStatus('AI 正在检测水印…');
-      rects = await detector.detect(editor.imgCanvas);
+      rects = await detector.detect(editor.imgCanvas, { sensitivity: detectSens });
       if (!rects.length) {
         setStatus('AI 未检测到水印，可尝试手动涂抹');
         return;
@@ -158,21 +175,40 @@ els.btnAutoDetect.addEventListener('click', async () => {
       }
     }
 
-    let px;
     if (detectReady) {
-      // AI 文本检测框：整体填满为 mask，保证文字笔画完整覆盖、无残留
-      px = editor.applyMaskRects(rects);
+      // 平铺水印：≥3 实例时按能量门控膨胀补齐漏检带
+      const before = rects.length;
+      const extended = extendTiled(editor.imgCanvas, rects);
+      const tiled = extended.length - before;
+      rects = extended;
+      // 图标/Logo 水印：DBNet 检不到纯图形，角落+底边条带启发式补检（与已有框去重）
+      const icons = detectIcons(editor.imgCanvas, { sensitivity: detectSens }).filter((ic) =>
+        !rects.some((r) => ic.x + ic.w > r.x - 8 && ic.x < r.x + r.w + 8
+          && ic.y + ic.h > r.y - 8 && ic.y < r.y + r.h + 8));
+      rects = rects.concat(icons);
+      // AI 检测框内像素级精修：只标记与局部背景差异明显的水印像素，
+      // 避免整框涂抹把框内干净背景一起送进 LaMa 重绘（误伤画面、修复后模糊）
+      const bits = WATERMARK_DETECT.refineMask(editor.imgCanvas, rects, { diffThreshold: 24, dilate: 4, blurRadius: 15 });
+      const px = editor.applyMaskBits(bits);
+      if (!px) {
+        setStatus('检测区域无需修复的内容，请手动涂抹');
+        return;
+      }
+      detectRects = rects;
+      const extra = (tiled > 0 ? '（含平铺扩展 ' + tiled + ' 处）' : '') + (icons.length ? '（图标 ' + icons.length + ' 处）' : '');
+      setStatus('检测到 ' + rects.length + ' 处水印' + extra
+        + '，已自动标记，可直接点「开始修复」', 'ok');
     } else {
       // 启发式降级路径：框内像素级精修，避免整框误涂
       const bits = WATERMARK_DETECT.refineMask(editor.imgCanvas, rects, { diffThreshold: 20, dilate: 4 });
-      px = editor.applyMaskBits(bits);
+      const px = editor.applyMaskBits(bits);
+      if (!px) {
+        setStatus('检测区域无需修复的内容，请手动涂抹');
+        return;
+      }
+      detectRects = rects;
+      setStatus('检测到 ' + rects.length + ' 处水印，已自动标记，可直接点「开始修复」', 'ok');
     }
-    if (!px) {
-      setStatus('检测区域无需修复的内容，请手动涂抹');
-      return;
-    }
-    detectRects = rects;
-    setStatus('检测到 ' + rects.length + ' 处水印，已自动标记，可直接点「开始修复」', 'ok');
   } catch (err) {
     setStatus('自动检测失败：' + String(err.message || err) + '，请手动涂抹', 'err');
   } finally {
@@ -208,7 +244,16 @@ els.btnRun.addEventListener('click', async () => {
       editor.setImage(result);
       detectRects = null;
       const sec = ((performance.now() - t0) / 1000).toFixed(1);
-      setStatus('修复完成，用时 ' + sec + ' 秒。可下载，或返回继续涂抹细节', 'ok');
+      // 自动复检：发现残留提示再修一轮（仅提示，不自动循环，避免耗时失控）
+      let residual = 0;
+      if (detectReady) {
+        try {
+          residual = (await detector.detect(editor.imgCanvas, { sensitivity: detectSens })).length;
+        } catch (e) { /* 复检失败不影响主流程 */ }
+      }
+      setStatus(residual
+        ? '修复完成，用时 ' + sec + ' 秒。检测到 ' + residual + ' 处残留，可再点「自动检测」修复一轮'
+        : '修复完成，用时 ' + sec + ' 秒。可下载，或返回继续涂抹细节', 'ok');
       setProgress(100);
       els.btnCompare.classList.remove('hidden');
     }

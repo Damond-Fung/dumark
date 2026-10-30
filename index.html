@@ -70,7 +70,15 @@
             <button class="ghost" id="btnClear" title="清空全部涂抹">清空</button>
           </div>
           <button class="primary" id="btnAutoDetect" title="自动识别图中的水印区域">✦ 自动检测水印</button>
-          <p class="auto-hint">检测结果会自动填入涂抹区，可用画笔/橡皮修正后再修复</p>
+          <div class="sens-row" id="sensRow">
+            <span>灵敏度</span>
+            <div class="seg" id="sensSeg">
+              <button class="seg-btn" data-sens="low" title="只保留高置信水印框，误标最少">低</button>
+              <button class="seg-btn active" data-sens="mid" title="默认平衡">中</button>
+              <button class="seg-btn" data-sens="high" title="尽量多检出，漏检少；可能误标，可橡皮擦除">高</button>
+            </div>
+          </div>
+          <p class="auto-hint">检测结果会自动填入涂抹区，可用画笔/橡皮修正后再修复；漏检时可将灵敏度调到「高」重试。图标检测结果为辅助判断，误标可直接擦除</p>
         </div>
 
         <div class="panel-block">

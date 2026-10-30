@@ -1,11 +1,16 @@
 /* 源图 Dumark — 文本检测客户端（DBNet / PP-OCRv4）
- * 预处理：等比缩放（长边 ≤736，取整到 32 倍数）→ ImageNet 标准化 → NCHW
+ * 预处理：等比缩放（长边 ≤2048，取整到 32 倍数）→ ImageNet 标准化 → NCHW
  * 后处理：概率图二值化 → 膨胀 → 连通域 → 分数过滤 → unclip 扩框 → 映射回原图
  * 水印绝大多数是文字/文字 Logo，OCR 文本检测对任意颜色、任意透明度的文字水印都稳健。
  */
-const MAX_SIDE = 960;    // 检测分辨率（密集小字需要更高输入分辨率）
-const THRESH = 0.25;     // 概率图二值化阈值
-const BOX_THRESH = 0.45; // 连通域平均分数下限
+const MAX_SIDE = 2048;   // 检测分辨率（画布上限 2048，即原生分辨率送检，小字水印不丢失）
+/* 灵敏度分档：高=阈值低漏检最少（可能误标，可橡皮擦除），低=只留高置信框 */
+const SENS = {
+  low:  { thresh: 0.25, box: 0.45 },
+  mid:  { thresh: 0.20, box: 0.35 },
+  high: { thresh: 0.15, box: 0.30 },
+};
+const DEFAULT_SENS = 'mid';
 const UNCLIP = 1.6;      // 外扩比例（覆盖文字描边）
 const MAX_BOXES = 200;
 const MEAN = [0.485, 0.456, 0.406];
@@ -43,20 +48,95 @@ export class DetectClient {
     this.cb.onError && this.cb.onError(text);
   }
 
-  /* 输入原图画布，返回原图坐标系下的检测框 [{x,y,w,h,conf}] */
-  async detect(imageCanvas) {
+  /* 输入原图画布，返回原图坐标系下的检测框 [{x,y,w,h,conf}]
+   * 双路检测：原图一路 + USM 锐化增强一路（放大半透明/低对比水印的模型响应），
+   * 两路结果按重叠度合并。opts.sensitivity: 'low' | 'mid' | 'high'，默认 mid */
+  async detect(imageCanvas, opts) {
     if (!this.ready) throw new Error('检测模型尚未就绪');
     if (this._pending) throw new Error('已有检测任务进行中');
 
+    const sens = SENS[(opts && opts.sensitivity) || DEFAULT_SENS];
     const prep = this._preprocess(imageCanvas);
-    const result = await new Promise((resolve, reject) => {
+    const result = await this._infer(prep);
+    let boxes = this._postprocess(result, prep, sens);
+
+    // 第二路：锐化增强图用高灵敏度档召回弱水印（canvas filter 不可用时跳过）
+    const sharp = this._sharpen(imageCanvas, 1.2, 2);
+    if (sharp) {
+      const prep2 = this._preprocess(sharp);
+      const result2 = await this._infer(prep2);
+      boxes = this._mergeBoxes(boxes, this._postprocess(result2, prep2, SENS.high));
+    }
+    return boxes;
+  }
+
+  /* 跑一次 Worker 推理 */
+  _infer(prep) {
+    return new Promise((resolve, reject) => {
       this._pending = { resolve, reject };
       this.worker.postMessage(
         { type: 'detect', imgArr: prep.tensor.buffer, h: prep.h, w: prep.w },
         [prep.tensor.buffer],
       );
     });
-    return this._postprocess(result, prep);
+  }
+
+  /* USM 锐化：out = img + amount × (img − blur(img))，增强弱边缘对比度 */
+  _sharpen(canvas, amount, radius) {
+    const probe = document.createElement('canvas').getContext('2d');
+    if (typeof probe.filter !== 'string') return null;
+    const W = canvas.width, H = canvas.height;
+    const blurred = document.createElement('canvas');
+    blurred.width = W; blurred.height = H;
+    const bCtx = blurred.getContext('2d', { willReadFrequently: true });
+    bCtx.filter = 'blur(' + radius + 'px)';
+    bCtx.drawImage(canvas, 0, 0);
+    const out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    const oCtx = out.getContext('2d', { willReadFrequently: true });
+    oCtx.drawImage(canvas, 0, 0);
+    const src = oCtx.getImageData(0, 0, W, H);
+    const blr = bCtx.getImageData(0, 0, W, H);
+    const d = src.data, b = blr.data;
+    for (let i = 0; i < d.length; i += 4) {
+      for (let c = 0; c < 3; c++) {
+        const v = d[i + c] + amount * (d[i + c] - b[i + c]);
+        d[i + c] = v < 0 ? 0 : v > 255 ? 255 : v;
+      }
+    }
+    oCtx.putImageData(src, 0, 0);
+    // 修复模糊在画布边缘的黑边伪影：USM 会把边缘亮边放大成「假文字带」，
+    // 用原图边带覆盖回去（带宽 = 模糊半径×3+2，覆盖伪影影响范围）
+    const s = Math.min(W, H, radius * 3 + 2);
+    oCtx.drawImage(canvas, 0, 0, W, s, 0, 0, W, s);
+    oCtx.drawImage(canvas, 0, H - s, W, s, 0, H - s, W, s);
+    oCtx.drawImage(canvas, 0, 0, s, H, 0, 0, s, H);
+    oCtx.drawImage(canvas, W - s, 0, s, H, W - s, 0, s, H);
+    return out;
+  }
+
+  /* 双路结果合并：重叠框（IoU > 0.2）取并集 + 最高置信度，其余直接保留 */
+  _mergeBoxes(primary, extra) {
+    const out = primary.slice();
+    for (const bb of extra) {
+      let hit = null;
+      for (const o of out) {
+        const ix = Math.max(0, Math.min(o.x + o.w, bb.x + bb.w) - Math.max(o.x, bb.x));
+        const iy = Math.max(0, Math.min(o.y + o.h, bb.y + bb.h) - Math.max(o.y, bb.y));
+        const inter = ix * iy;
+        if (inter && inter / (o.w * o.h + bb.w * bb.h - inter) > 0.2) { hit = o; break; }
+      }
+      if (hit) {
+        const x2 = Math.max(hit.x + hit.w, bb.x + bb.w);
+        const y2 = Math.max(hit.y + hit.h, bb.y + bb.h);
+        hit.x = Math.min(hit.x, bb.x); hit.y = Math.min(hit.y, bb.y);
+        hit.w = x2 - hit.x; hit.h = y2 - hit.y;
+        hit.conf = Math.max(hit.conf, bb.conf);
+      } else {
+        out.push(bb);
+      }
+    }
+    return out;
   }
 
   /* 等比缩放 + 32 对齐 + ImageNet 标准化，打包 RGB CHW */
@@ -83,7 +163,7 @@ export class DetectClient {
   }
 
   /* 概率图 → 二值化膨胀 → 连通域 → unclip → 原图坐标 */
-  _postprocess(result, prep) {
+  _postprocess(result, prep, sens) {
     const prob = new Float32Array(result.outArr);
     const rw = result.w, rh = result.h;
     const n = rw * rh;
@@ -93,7 +173,7 @@ export class DetectClient {
     for (let y = 0; y < rh; y++) {
       for (let x = 0; x < rw; x++) {
         const i = y * rw + x;
-        if (prob[i] <= THRESH) continue;
+        if (prob[i] <= sens.thresh) continue;
         bin[i] = 1;
         if (x + 1 < rw) bin[i + 1] = 1;
         if (y + 1 < rh) { bin[i + rw] = 1; if (x + 1 < rw) bin[i + rw + 1] = 1; }
@@ -124,7 +204,7 @@ export class DetectClient {
       const bw = maxX - minX + 1, bh = maxY - minY + 1;
       if (Math.min(bw, bh) < 3) continue;
       const score = scoreSum / count;
-      if (score < BOX_THRESH) continue;
+      if (score < sens.box) continue;
 
       // unclip：按面积/周长外扩，覆盖文字边缘
       const d = (count * UNCLIP) / (2 * (bw + bh));
@@ -136,10 +216,10 @@ export class DetectClient {
       let by = Math.round(y * prep.scaleY);
       let bw2 = Math.round((x2 - x + 1) * prep.scaleX);
       let bh2 = Math.round((y2 - y + 1) * prep.scaleY);
-      // 关键：再向外扩边，确保 mask 完整覆盖文字（含抗锯齿描边）。
-      // LaMa 的全局感受野会把 mask 外残留的笔画尖端「延伸」补全成文字，导致残留。
-      const padY = Math.max(8, Math.round(bh2 * 0.4));
-      const padX = Math.max(8, Math.round(bh2 * 0.3));
+      // 适度外扩：像素级精修只标记框内与背景差异大的像素，
+      // 无需整框填满时代的大扩边，避免框内圈入过多背景纹理被误标。
+      const padY = Math.min(24, Math.max(6, Math.round(bh2 * 0.15)));
+      const padX = Math.min(20, Math.max(6, Math.round(bh2 * 0.12)));
       bx = Math.max(0, bx - padX);
       by = Math.max(0, by - padY);
       bw2 = Math.min(prep.imgW - bx, bw2 + padX * 2);

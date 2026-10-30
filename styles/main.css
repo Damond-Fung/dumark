@@ -114,6 +114,10 @@ button.ghost {
 button.ghost:hover { border-color: var(--accent); color: var(--accent); }
 .status-block { margin-top: auto; }
 .auto-hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+.sens-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; }
+.sens-row > span { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.sens-row .seg { flex: 1; margin-bottom: 0; }
+.sens-row .seg-btn { padding: 6px 0; font-size: 13px; }
 .progress { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
 .progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 3px; transition: width .25s; }
 .status-text { font-family: var(--mono); font-size: 11px; color: var(--muted); word-break: break-all; }
