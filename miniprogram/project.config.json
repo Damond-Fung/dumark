@@ -1,0 +1,18 @@
+{
+  "description": "源图 Dumark 微信小程序版",
+  "projectname": "dumark-miniprogram",
+  "appid": "touristappid",
+  "compileType": "miniprogram",
+  "libVersion": "3.5.0",
+  "miniprogramRoot": "./",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "ignoreDevUnusedFiles": false,
+    "checkInvalidKey": true
+  },
+  "condition": {}
+}

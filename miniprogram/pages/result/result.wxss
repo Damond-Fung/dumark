@@ -1,0 +1,129 @@
+.result {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24rpx 32rpx calc(28rpx + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 4rpx 20rpx;
+}
+
+.title {
+  font-size: 46rpx;
+  color: #f2f0ea;
+}
+
+.meta {
+  font-size: 22rpx;
+  color: #85827a;
+}
+
+.cmp-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cmp-box {
+  position: relative;
+  border-radius: 18rpx;
+  overflow: hidden;
+  background: #0c0c0e;
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+}
+
+.cmp-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.cmp-clip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  overflow: hidden;
+  border-right: 1rpx solid rgba(255, 255, 255, 0.14);
+}
+
+.cmp-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  z-index: 3;
+}
+
+.handle-line {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.handle-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 76rpx;
+  height: 76rpx;
+  line-height: 76rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #f2f0ea;
+  color: #131316;
+  font-size: 34rpx;
+  font-weight: 900;
+  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.4);
+}
+
+.tag {
+  position: absolute;
+  top: 16rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  background: rgba(12, 12, 14, 0.72);
+  color: #d8d5cc;
+  z-index: 4;
+}
+
+.tag-left {
+  left: 16rpx;
+}
+
+.tag-right {
+  right: 16rpx;
+}
+
+.cmp-hint {
+  margin-top: 20rpx;
+  font-size: 22rpx;
+  color: #77746d;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding-top: 20rpx;
+}
+
+.link {
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #85827a;
+}

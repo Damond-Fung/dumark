@@ -1,0 +1,29 @@
+<view class="result">
+  <view class="head">
+    <text class="title serif">修复前后</text>
+    <text class="meta">{{meta}}</text>
+  </view>
+
+  <view class="cmp-area" id="cmpArea">
+    <view class="cmp-box" id="cmpBox" style="width:{{cssW}}px;height:{{cssH}}px"
+      bindtouchstart="onDragStart" catchtouchmove="onDragMove" bindtouchend="onDragEnd" bindtouchcancel="onDragEnd">
+      <image class="cmp-img" src="{{result}}" mode="aspectFit" style="width:{{cssW}}px;height:{{cssH}}px" />
+      <view class="cmp-clip" style="width:{{pos}}%">
+        <image class="cmp-img" src="{{original}}" mode="aspectFit" style="width:{{cssW}}px;height:{{cssH}}px" />
+      </view>
+      <view class="cmp-handle" style="left:{{pos}}%">
+        <view class="handle-line"></view>
+        <view class="handle-knob">⇆</view>
+      </view>
+      <text class="tag tag-left">修复前</text>
+      <text class="tag tag-right">修复后</text>
+    </view>
+    <text class="cmp-hint">左右拖动对比 · 左侧为修复前</text>
+  </view>
+
+  <view class="actions">
+    <button class="btn btn-primary" bindtap="save" disabled="{{saving}}">保存到相册</button>
+    <button class="btn btn-ghost" bindtap="reEdit">继续精修</button>
+    <button class="link" bindtap="goHome">返回首页</button>
+  </view>
+</view>

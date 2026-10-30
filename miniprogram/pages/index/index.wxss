@@ -1,0 +1,180 @@
+.home {
+  min-height: 100vh;
+  padding: 36rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.mhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 0 24rpx;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand-mark {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  margin-right: 16rpx;
+}
+
+.brand-name {
+  font-size: 36rpx;
+  font-weight: 900;
+  letter-spacing: 2rpx;
+  color: #f2f0ea;
+}
+
+.hero {
+  padding: 24rpx 0 40rpx;
+}
+
+.kicker {
+  display: block;
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
+  color: #77746d;
+  margin-bottom: 18rpx;
+}
+
+.title {
+  display: block;
+  font-size: 78rpx;
+  line-height: 1.14;
+  color: #f2f0ea;
+}
+
+.title-accent {
+  display: block;
+  color: #ff4f5e;
+}
+
+.sub {
+  display: block;
+  margin-top: 22rpx;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #a5a29a;
+}
+
+.pick-card {
+  background: #1b1b20;
+  border: 1rpx solid rgba(255, 255, 255, 0.07);
+  border-radius: 24rpx;
+  padding: 24rpx;
+}
+
+.pick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  border-radius: 20rpx;
+  background: #24242b;
+  text-align: left;
+}
+
+.pick-btn:last-of-type {
+  margin-bottom: 0;
+}
+
+.pick-hover {
+  background: #2e2e37;
+}
+
+.pick-icon {
+  font-size: 40rpx;
+  color: #ff4f5e;
+  line-height: 1;
+  margin-bottom: 12rpx;
+}
+
+.pick-main {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #f2f0ea;
+}
+
+.pick-sub {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #85827a;
+}
+
+.pick-hint {
+  display: block;
+  margin-top: 22rpx;
+  font-size: 22rpx;
+  color: #6f6c65;
+}
+
+.recent {
+  margin-top: 36rpx;
+}
+
+.sec-label {
+  display: block;
+  font-size: 22rpx;
+  letter-spacing: 3rpx;
+  color: #6f6c65;
+  margin-bottom: 14rpx;
+}
+
+.recent-row {
+  display: flex;
+  align-items: center;
+  padding: 18rpx;
+  border-radius: 20rpx;
+  background: #1b1b20;
+  border: 1rpx solid rgba(255, 255, 255, 0.07);
+}
+
+.recent-thumb {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 14rpx;
+  margin-right: 20rpx;
+  background: #24242b;
+}
+
+.recent-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-title {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #f2f0ea;
+}
+
+.recent-sub {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #85827a;
+}
+
+.recent-arrow {
+  font-size: 40rpx;
+  color: #6f6c65;
+  padding-left: 12rpx;
+}
+
+.tips {
+  margin-top: 40rpx;
+}
+
+.tip {
+  display: block;
+  font-size: 24rpx;
+  line-height: 1.8;
+  color: #85827a;
+}

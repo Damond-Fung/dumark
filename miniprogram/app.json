@@ -1,0 +1,16 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/editor/editor",
+    "pages/result/result"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#131316",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "源图 Dumark",
+    "backgroundColor": "#131316",
+    "backgroundTextStyle": "dark"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

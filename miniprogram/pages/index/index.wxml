@@ -1,0 +1,49 @@
+<!-- 首页：品牌 + 选图入口 + 本次处理结果 -->
+<view class="home">
+  <view class="mhead">
+    <view class="brand">
+      <image class="brand-mark" src="/assets/logo.jpg" mode="aspectFill" />
+      <text class="brand-name">源图<text class="accent">Dumark</text></text>
+    </view>
+    <view class="pill">{{engine}}</view>
+  </view>
+
+  <view class="hero">
+    <text class="kicker">AI INPAINTING · 本地处理</text>
+    <view class="title serif">抹去水印<text class="title-accent">不留痕迹</text></view>
+    <text class="sub">涂抹水印区域，修复引擎在手机本地重建背景。不上传、不排队、不限次数。</text>
+  </view>
+
+  <view class="pick-card">
+    <button class="pick-btn" data-source="album" bindtap="pickImage" hover-class="pick-hover">
+      <text class="pick-icon">▣</text>
+      <text class="pick-main">从相册选图</text>
+      <text class="pick-sub">PNG / JPG / WEBP</text>
+    </button>
+    <button class="pick-btn" data-source="camera" bindtap="pickImage" hover-class="pick-hover">
+      <text class="pick-icon">◎</text>
+      <text class="pick-main">拍照识别</text>
+      <text class="pick-sub">直接拍摄带水印图片</text>
+    </button>
+    <text class="pick-hint">单张 ≤ 10MB · 处理全程在本机完成</text>
+  </view>
+
+  <view class="recent" wx:if="{{recent}}">
+    <text class="sec-label">本次处理</text>
+    <view class="recent-row" bindtap="openRecent">
+      <image class="recent-thumb" src="{{recent.thumb}}" mode="aspectFill" />
+      <view class="recent-meta">
+        <text class="recent-title">处理结果</text>
+        <text class="recent-sub">{{recent.meta}}</text>
+      </text></view>
+      <text class="recent-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="tips">
+    <text class="sec-label">使用提示</text>
+    <text class="tip">1. 选择图片后，用手指涂红水印区域，或点「自动检测」</text>
+    <text class="tip">2. 复杂纹理背景的修复质量有限，需要更高画质可使用网页版</text>
+    <text class="tip">3. 请仅处理你拥有版权或已获授权的图片</text>
+  </view>
+</view>

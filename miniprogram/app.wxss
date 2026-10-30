@@ -1,0 +1,106 @@
+/* 全局样式：深色底 + 大字重高对比（与电脑版/手机网页版视觉保持一致） */
+page {
+  background: #131316;
+  color: #f2f0ea;
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+view,
+text,
+button,
+image {
+  box-sizing: border-box;
+}
+
+button {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  border-radius: 0;
+}
+
+button::after {
+  border: none;
+}
+
+.serif {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-weight: 900;
+}
+
+.accent {
+  color: #ff4f5e;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.16);
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+  color: #b9b6ae;
+}
+
+.pill.ok {
+  color: #3ddc97;
+  border-color: rgba(61, 220, 151, 0.35);
+}
+
+.pill.err {
+  color: #ff7b86;
+  border-color: rgba(255, 79, 94, 0.4);
+}
+
+.pill.loading {
+  color: #f0c96a;
+  border-color: rgba(240, 201, 106, 0.35);
+}
+
+/* 通用提示条 */
+.hint {
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #8f8c84;
+}
+
+.hint.ok {
+  color: #3ddc97;
+}
+
+.hint.err {
+  color: #ff7b86;
+}
+
+/* 通用按钮 */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 96rpx;
+  border-radius: 20rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.btn-primary {
+  background: #ff4f5e;
+  color: #fff;
+}
+
+.btn-primary[disabled] {
+  background: #3a3a40;
+  color: #77746d;
+}
+
+.btn-ghost {
+  border: 1rpx solid rgba(255, 255, 255, 0.18);
+  color: #d8d5cc;
+}

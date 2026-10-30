@@ -16,6 +16,11 @@ developer_preferences.md
 # ONNX 模型文件（太大，GitHub 单文件限制 100MB）
 models/*.onnx
 
+# 微信开发者工具生成的本地配置与依赖
+miniprogram/project.private.config.json
+miniprogram/miniprogram_npm/
+miniprogram/node_modules/
+
 # 系统文件
 Thumbs.db
 .DS_Store

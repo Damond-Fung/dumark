@@ -1,0 +1,59 @@
+<view class="page">
+  <view class="topline">
+    <text class="meta">{{imageLabel}}</text>
+    <view class="pill">{{engineLabel}}</view>
+  </view>
+
+  <view class="stage" id="stage">
+    <canvas type="2d" id="imgCanvas" class="layer" style="width:{{cssW}}px;height:{{cssH}}px"></canvas>
+    <canvas type="2d" id="maskCanvas" class="layer" style="width:{{cssW}}px;height:{{cssH}}px"
+      bindtouchstart="onTouchStart" catchtouchmove="onTouchMove"
+      bindtouchend="onTouchEnd" bindtouchcancel="onTouchEnd"></canvas>
+  </view>
+
+  <view class="panel">
+    <view class="row">
+      <view class="seg">
+        <button class="seg-btn {{mode === 'brush' ? 'active' : ''}}" data-mode="brush" bindtap="setMode">画笔</button>
+        <button class="seg-btn {{mode === 'eraser' ? 'active' : ''}}" data-mode="eraser" bindtap="setMode">橡皮</button>
+      </view>
+      <view class="row-right">
+        <button class="icon-btn" bindtap="onUndo">撤销</button>
+        <button class="icon-btn" bindtap="onClear">清空</button>
+      </view>
+    </view>
+
+    <view class="row">
+      <text class="label">笔刷</text>
+      <slider class="slider" min="12" max="72" value="{{brushSize}}" activeColor="#ff4f5e"
+        backgroundColor="#33333b" block-size="20" block-color="#f2f0ea" bindchange="onBrushSize" />
+    </view>
+
+    <view class="row">
+      <text class="label">灵敏度</text>
+      <view class="seg">
+        <button class="seg-btn {{sens === 'low' ? 'active' : ''}}" data-sens="low" bindtap="onSens">低</button>
+        <button class="seg-btn {{sens === 'mid' ? 'active' : ''}}" data-sens="mid" bindtap="onSens">中</button>
+        <button class="seg-btn {{sens === 'high' ? 'active' : ''}}" data-sens="high" bindtap="onSens">高</button>
+      </view>
+    </view>
+
+    <text class="hint {{statusType}}">{{status}}</text>
+
+    <view class="actions">
+      <button class="btn btn-ghost" bindtap="onDetect" disabled="{{busy}}">自动检测</button>
+      <button class="btn btn-primary" bindtap="onRepair" disabled="{{!hasMask || busy}}">开始修复</button>
+    </view>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}" catchtouchmove="noop">
+    <view class="loading-card">
+      <view class="spinner"></view>
+      <text class="loading-text">{{progressText}}</text>
+      <view class="bar">
+        <view class="bar-fill" style="width:{{progress}}%"></view>
+      </view>
+      <text class="loading-note">处理在本机完成，请保持页面停留</text>
+    </view>
+  </view>
+</view>
